@@ -7,6 +7,7 @@ import {
   formatUnits,
 } from "viem";
 import { baseSepolia } from "viem/chains";
+import "./App.css";
 
 const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS as `0x${string}`;
 
@@ -118,7 +119,6 @@ export default function App() {
     setError(null);
 
     try {
-      // Pending: use efficient on-chain index
       const pendingIds = await publicClient.readContract({
         address: CONTRACT_ADDRESS,
         abi: NEXUS_ABI,
@@ -137,7 +137,6 @@ export default function App() {
       }
       setPending(pendingEscrows);
 
-      // History: recent 20 non-pending (iterate from end)
       const total = await publicClient.readContract({
         address: CONTRACT_ADDRESS,
         abi: NEXUS_ABI,
@@ -214,79 +213,114 @@ export default function App() {
   }
 
   return (
-    <div style={{ fontFamily: "system-ui", maxWidth: 640, margin: "40px auto", padding: "0 20px" }}>
-      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 4 }}>Nexus</h1>
-      <p style={{ color: "#666", marginBottom: 32 }}>AI Agent Payment Approvals</p>
-
-      {error && (
-        <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 6, padding: "10px 14px", marginBottom: 16, color: "#dc2626", fontSize: 14 }}>
-          {error}
+    <div className="app">
+      <header className="header">
+        <div className="wordmark">
+          <h1>Nexus</h1>
+          <span className="wordmark-dot" />
         </div>
-      )}
+        <p className="subtitle">Agent Payment Clearance</p>
+      </header>
+
+      {error && <div className="error-banner">{error}</div>}
 
       {!address ? (
-        <button onClick={connect} style={btnStyle("#000", "#fff")}>
-          Connect Wallet
-        </button>
+        <div className="connect-area">
+          <p className="connect-label">Authorization required</p>
+          <button className="btn-connect" onClick={connect}>
+            Connect Wallet
+          </button>
+        </div>
       ) : (
         <>
-          <div style={{ marginBottom: 20, fontSize: 13, color: "#666" }}>
-            {address.slice(0, 6)}...{address.slice(-4)}
-            {" "}
+          <div className="wallet-bar">
+            <span className="wallet-address">
+              {address.slice(0, 8)}...{address.slice(-6)}
+            </span>
             {isOwner ? (
-              <span style={{ color: "#16a34a", fontWeight: 600 }}>Approver</span>
+              <span className="wallet-status approver">Approver</span>
             ) : (
-              <span style={{ color: "#dc2626" }}>Not the contract owner — approve/reject disabled</span>
+              <span className="wallet-status viewer">Read Only</span>
             )}
           </div>
 
           {loading ? (
-            <p style={{ color: "#999" }}>Loading...</p>
+            <div className="loading-state">
+              <span className="loading-dot" />
+              Reading chain...
+            </div>
           ) : (
             <>
-              <section>
-                <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 12 }}>
-                  Pending Approval ({pending.length})
-                </h2>
+              <section className="pending-section">
+                <div className="section-label">
+                  Awaiting Clearance
+                  {pending.length > 0 && (
+                    <span className="section-count">{pending.length}</span>
+                  )}
+                </div>
+
                 {pending.length === 0 ? (
-                  <p style={{ color: "#999" }}>No pending approvals.</p>
+                  <div className="empty-state">No pending authorizations</div>
                 ) : (
-                  pending.map((e) => {
+                  pending.map((e, i) => {
                     const expiresAt = new Date(
                       (Number(e.createdAt) + 30 * 24 * 60 * 60) * 1000
-                    ).toLocaleDateString();
+                    ).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    });
                     return (
-                      <div key={e.id} style={cardStyle}>
-                        <div style={{ marginBottom: 6 }}>
-                          <span style={{ fontWeight: 700, fontSize: 18 }}>
-                            ${formatUnits(e.amount, 6)} USDC
+                      <div
+                        key={e.id}
+                        className="escrow-card"
+                        style={{ animationDelay: `${i * 0.08}s` }}
+                      >
+                        <div className="escrow-amount-row">
+                          <span className="escrow-amount">
+                            ${formatUnits(e.amount, 6)}
                           </span>
-                          <span style={{ color: "#999", marginLeft: 8, fontSize: 13 }}>
-                            #{e.id}
+                          <span className="escrow-id">
+                            USDC / #{e.id}
                           </span>
                         </div>
-                        <p style={{ margin: "0 0 4px", fontWeight: 500 }}>{e.description}</p>
-                        <p style={{ margin: "0 0 2px", fontSize: 12, color: "#888" }}>
-                          To: {e.recipient}
+
+                        <p className="escrow-description">{e.description}</p>
+
+                        <div className="escrow-meta">
+                          <div className="escrow-meta-row">
+                            <span className="meta-label">To</span>
+                            <span>
+                              {e.recipient.slice(0, 10)}...{e.recipient.slice(-8)}
+                            </span>
+                          </div>
+                          <div className="escrow-meta-row">
+                            <span className="meta-label">From</span>
+                            <span>
+                              {e.depositor.slice(0, 10)}...{e.depositor.slice(-8)}
+                            </span>
+                          </div>
+                        </div>
+
+                        <p className="escrow-expiry">
+                          Self-refund eligible {expiresAt}
                         </p>
-                        <p style={{ margin: "0 0 14px", fontSize: 11, color: "#bbb" }}>
-                          Self-refund eligible: {expiresAt}
-                        </p>
+
                         {isOwner && (
-                          <div style={{ display: "flex", gap: 8 }}>
+                          <div className="action-row">
                             <button
+                              className="btn-authorize"
                               onClick={() => approve(e.id)}
                               disabled={processing === e.id}
-                              style={btnStyle("#16a34a", "#fff")}
                             >
-                              {processing === e.id ? "..." : "Approve"}
+                              {processing === e.id ? "···" : "Authorize"}
                             </button>
                             <button
+                              className="btn-reject"
                               onClick={() => reject(e.id)}
                               disabled={processing === e.id}
-                              style={btnStyle("#dc2626", "#fff")}
                             >
-                              {processing === e.id ? "..." : "Reject"}
+                              {processing === e.id ? "···" : "Reject"}
                             </button>
                           </div>
                         )}
@@ -297,58 +331,44 @@ export default function App() {
               </section>
 
               {history.length > 0 && (
-                <section style={{ marginTop: 32 }}>
-                  <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 12 }}>History</h2>
-                  {history.map((e) => (
-                    <div key={e.id} style={{ ...cardStyle, opacity: 0.55 }}>
-                      <span style={{ fontWeight: 600 }}>${formatUnits(e.amount, 6)} USDC</span>
+                <section className="history-section">
+                  <div className="section-label">History</div>
+                  {history.map((e, i) => (
+                    <div
+                      key={e.id}
+                      className="history-row"
+                      style={{ animationDelay: `${i * 0.05}s` }}
+                    >
+                      <span className="history-amount">
+                        ${formatUnits(e.amount, 6)}
+                      </span>
                       <span
-                        style={{
-                          marginLeft: 8,
-                          color: e.status === 1 ? "#16a34a" : "#dc2626",
-                          fontWeight: 500,
-                        }}
+                        className={`history-badge ${
+                          e.status === 1 ? "released" : "refunded"
+                        }`}
                       >
                         {STATUS_LABELS[e.status]}
                       </span>
-                      <span style={{ marginLeft: 8, color: "#999", fontSize: 13 }}>
-                        #{e.id} — {e.description}
-                      </span>
+                      <span className="history-desc">{e.description}</span>
+                      <span className="history-id">#{e.id}</span>
                     </div>
                   ))}
                 </section>
               )}
 
-              <button
-                onClick={load}
-                style={{ marginTop: 24, ...btnStyle("#f3f4f6", "#000") }}
-              >
-                Refresh
-              </button>
+              <div className="footer-bar">
+                <button className="btn-refresh" onClick={load}>
+                  ↻ Refresh
+                </button>
+                <div className="network-badge">
+                  <span className="network-dot" />
+                  Base Sepolia
+                </div>
+              </div>
             </>
           )}
         </>
       )}
     </div>
   );
-}
-
-const cardStyle: React.CSSProperties = {
-  border: "1px solid #e5e7eb",
-  borderRadius: 8,
-  padding: "16px",
-  marginBottom: 12,
-};
-
-function btnStyle(bg: string, color: string): React.CSSProperties {
-  return {
-    background: bg,
-    color,
-    border: "none",
-    borderRadius: 6,
-    padding: "8px 16px",
-    cursor: "pointer",
-    fontSize: 14,
-    fontWeight: 500,
-  };
 }

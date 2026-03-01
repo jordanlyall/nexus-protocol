@@ -9,8 +9,7 @@ contract Deploy is Script {
     address constant USDC = 0x036CbD53842c5426634e7929541eC2318f3dCF7e;
 
     function run() external {
-        uint256 deployerKey = vm.envUint("PRIVATE_KEY");
-        vm.startBroadcast(deployerKey);
+        vm.startBroadcast();
 
         NexusEscrow nexus = new NexusEscrow(USDC);
         console.log("NexusEscrow deployed:", address(nexus));
