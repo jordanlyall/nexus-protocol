@@ -6,12 +6,11 @@ import {
   custom,
   formatUnits,
 } from "viem";
-import { base, baseSepolia } from "viem/chains";
+import { base } from "viem/chains";
 import "./App.css";
 
 const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS as `0x${string}`;
-// Use Base mainnet when VITE_NETWORK=mainnet, otherwise Sepolia
-const chain = import.meta.env.VITE_NETWORK === "mainnet" ? base : baseSepolia;
+const chain = base;
 
 const NEXUS_ABI = [
   {
