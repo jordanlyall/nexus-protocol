@@ -6,10 +6,12 @@ import {
   custom,
   formatUnits,
 } from "viem";
-import { baseSepolia } from "viem/chains";
+import { base, baseSepolia } from "viem/chains";
 import "./App.css";
 
 const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS as `0x${string}`;
+// Use Base mainnet when VITE_NETWORK=mainnet, otherwise Sepolia
+const chain = import.meta.env.VITE_NETWORK === "mainnet" ? base : baseSepolia;
 
 const NEXUS_ABI = [
   {
@@ -82,7 +84,7 @@ type EscrowData = {
 };
 
 const publicClient = createPublicClient({
-  chain: baseSepolia,
+  chain,
   transport: http(),
 });
 
@@ -170,7 +172,7 @@ export default function App() {
     setError(null);
     try {
       const walletClient = createWalletClient({
-        chain: baseSepolia,
+        chain,
         transport: custom((window as any).ethereum),
       });
       await walletClient.writeContract({
@@ -194,7 +196,7 @@ export default function App() {
     setError(null);
     try {
       const walletClient = createWalletClient({
-        chain: baseSepolia,
+        chain,
         transport: custom((window as any).ethereum),
       });
       await walletClient.writeContract({
@@ -362,7 +364,7 @@ export default function App() {
                 </button>
                 <div className="network-badge">
                   <span className="network-dot" />
-                  Base Sepolia
+                  {chain.name}
                 </div>
               </div>
             </>
